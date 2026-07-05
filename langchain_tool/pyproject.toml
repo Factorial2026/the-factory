@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "langchain-the-factory"
+version = "0.1.0"
+description = "LangChain Tool integration for The Factory — x402 micropayment data API"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [{name = "The Factory"}]
+requires-python = ">=3.9"
+dependencies = [
+    "langchain-core>=0.2.0",
+    "langchain>=0.2.0",
+    "the-factory-client>=0.1.0",
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Framework :: Langchain",
+]
+
+[project.urls]
+Homepage = "https://github.com/Factorial2026/the-factory"
+Documentation = "https://github.com/Factorial2026/the-factory/blob/main/SHOWCASE.md"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["langchain_the_factory*"]

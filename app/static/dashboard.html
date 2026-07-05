@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Factory — Live Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0d1117;
+    --panel: #161b22;
+    --border: #30363d;
+    --text: #c9d1d9;
+    --text-dim: #8b949e;
+    --accent: #58a6ff;
+    --green: #3fb950;
+    --red: #f85149;
+    --yellow: #d29922;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+    padding: 20px;
+  }
+  .container { max-width: 1200px; margin: 0 auto; }
+  header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 32px; padding-bottom: 16px; border-bottom: 1px solid var(--border);
+  }
+  h1 { font-size: 28px; font-weight: 600; }
+  h1 .version { color: var(--text-dim); font-size: 16px; font-weight: 400; margin-left: 8px; }
+  .status-badge {
+    padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600;
+    background: var(--green); color: #0d1117;
+  }
+  .status-badge.paused { background: var(--yellow); }
+  .grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 16px; margin-bottom: 32px;
+  }
+  .card {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 8px; padding: 20px;
+  }
+  .card-label { color: var(--text-dim); font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+  .card-value { font-size: 28px; font-weight: 600; }
+  .card-sub { color: var(--text-dim); font-size: 13px; margin-top: 4px; }
+  .progress-bar {
+    height: 6px; background: var(--border); border-radius: 3px;
+    margin-top: 12px; overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%; background: linear-gradient(90deg, var(--green) 0%, var(--yellow) 70%, var(--red) 100%);
+    transition: width 0.5s ease;
+  }
+  .chart-container {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 8px; padding: 20px; margin-bottom: 24px;
+  }
+  .chart-title { font-size: 16px; font-weight: 600; margin-bottom: 16px; }
+  .chart-wrapper { position: relative; height: 240px; }
+  .endpoints-list { display: flex; flex-direction: column; gap: 8px; }
+  .endpoint-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 12px; background: var(--bg); border-radius: 6px; font-size: 13px;
+  }
+  .endpoint-name { font-family: "SF Mono", Consolas, monospace; color: var(--accent); }
+  .endpoint-count { color: var(--text-dim); }
+  footer {
+    text-align: center; color: var(--text-dim); font-size: 12px;
+    margin-top: 32px; padding-top: 16px; border-top: 1px solid var(--border);
+  }
+  footer a { color: var(--accent); text-decoration: none; }
+  .live-dot {
+    display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+    background: var(--green); margin-right: 6px;
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div>
+      <h1>The Factory <span class="version" id="version">v2.0.0</span></h1>
+      <p style="color: var(--text-dim); font-size: 14px; margin-top: 4px;">
+        <span class="live-dot"></span>Live · x402 micropayment agent · Solana USDC
+      </p>
+    </div>
+    <div class="status-badge" id="status-badge">OPERATIONAL</div>
+  </header>
+
+  <div class="grid">
+    <div class="card">
+      <div class="card-label">Earned (30d)</div>
+      <div class="card-value" id="earned-30d">$0.00</div>
+      <div class="card-sub">of $<span id="cap">120.00</span> monthly cap</div>
+      <div class="progress-bar"><div class="progress-fill" id="cap-fill" style="width: 0%"></div></div>
+    </div>
+    <div class="card">
+      <div class="card-label">Calls (24h)</div>
+      <div class="card-value" id="calls-24h">0</div>
+      <div class="card-sub"><span id="calls-7d">0</span> in last 7 days</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Revenue (24h)</div>
+      <div class="card-value" id="revenue-24h">$0.00</div>
+      <div class="card-sub">$<span id="revenue-7d">0.00</span> in last 7 days</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Cache hit rate (24h)</div>
+      <div class="card-value" id="cache-rate">0%</div>
+      <div class="card-sub">LLM calls saved by caching</div>
+    </div>
+  </div>
+
+  <div class="chart-container">
+    <div class="chart-title">Endpoint usage (last 7 days)</div>
+    <div class="chart-wrapper"><canvas id="endpoints-chart"></canvas></div>
+  </div>
+
+  <div class="chart-container">
+    <div class="chart-title">Pricing &amp; plans</div>
+    <div class="endpoints-list" id="pricing-list"></div>
+  </div>
+
+  <div class="chart-container">
+    <div class="chart-title">Wallet</div>
+    <div style="font-family: 'SF Mono', Consolas, monospace; font-size: 14px; word-break: break-all; color: var(--accent);" id="wallet">7Mby...</div>
+    <div style="color: var(--text-dim); font-size: 13px; margin-top: 8px;">
+      Solana mainnet · USDC (EPjFWdd5...)
+    </div>
+  </div>
+
+  <footer>
+    Live docs at <a href="/docs">/docs</a> ·
+    Health at <a href="/health">/health</a> ·
+    Source on <a href="https://github.com/Factorial2026/the-factory" target="_blank">GitHub</a>
+  </footer>
+</div>
+
+<script>
+const REFRESH_MS = 30000; // 30 seconds
+
+async function fetchStats() {
+  try {
+    const res = await fetch('/stats');
+    if (!res.ok) throw new Error('stats fetch failed');
+    return await res.json();
+  } catch (e) {
+    console.error('stats fetch error:', e);
+    return null;
+  }
+}
+
+let endpointsChart = null;
+
+function renderStats(data) {
+  if (!data) return;
+
+  document.getElementById('version').textContent = 'v' + (data.version || '2.0.0');
+  document.getElementById('earned-30d').textContent = '$' + (data.earned_last_30d_usd || 0).toFixed(4);
+  document.getElementById('cap').textContent = (data.monthly_cap_usd || 120).toFixed(2);
+
+  const capPct = Math.min(100, data.cap_pct || 0);
+  document.getElementById('cap-fill').style.width = capPct + '%';
+
+  if (capPct >= 100) {
+    const badge = document.getElementById('status-badge');
+    badge.textContent = 'CAP REACHED';
+    badge.classList.add('paused');
+  }
+
+  document.getElementById('calls-24h').textContent = data.calls_24h || 0;
+  document.getElementById('calls-7d').textContent = data.calls_7d || 0;
+  document.getElementById('revenue-24h').textContent = '$' + (data.revenue_24h_usd || 0).toFixed(4);
+  document.getElementById('revenue-7d').textContent = (data.revenue_7d_usd || 0).toFixed(4);
+  document.getElementById('cache-rate').textContent = (data.cache_hit_rate_24h_pct || 0).toFixed(1) + '%';
+  document.getElementById('wallet').textContent = data.wallet || '';
+
+  // Endpoints chart
+  const endpoints = data.endpoint_breakdown_7d || {};
+  const labels = Object.keys(endpoints);
+  const values = Object.values(endpoints);
+
+  if (endpointsChart) {
+    endpointsChart.data.labels = labels;
+    endpointsChart.data.datasets[0].data = values;
+    endpointsChart.update();
+  } else {
+    const ctx = document.getElementById('endpoints-chart').getContext('2d');
+    endpointsChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Calls (7d)',
+          data: values,
+          backgroundColor: '#58a6ff',
+          borderColor: '#58a6ff',
+          borderWidth: 0,
+          borderRadius: 4,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          y: { beginAtZero: true, grid: { color: '#30363d' }, ticks: { color: '#8b949e' } },
+          x: { grid: { display: false }, ticks: { color: '#8b949e' } }
+        }
+      }
+    });
+  }
+
+  // Pricing list
+  const pricing = data.pricing || {};
+  const pricingHtml = Object.entries(pricing).map(([k, v]) =>
+    `<div class="endpoint-row">
+      <span class="endpoint-name">/api/v1/${k.replace('_', '-')}</span>
+      <span class="endpoint-count">$${v.toFixed(2)} USDC</span>
+    </div>`
+  ).join('') + `
+    <div class="endpoint-row">
+      <span class="endpoint-name">Bulk pack (${data.bulk.calls} calls)</span>
+      <span class="endpoint-count">$${data.bulk.price_usd.toFixed(2)} USDC (20% off)</span>
+    </div>
+    <div class="endpoint-row">
+      <span class="endpoint-name">Subscription (${data.subscription.calls.toLocaleString()} calls)</span>
+      <span class="endpoint-count">$${data.subscription.price_usd.toFixed(2)} USDC/mo (75% off)</span>
+    </div>
+  `;
+  document.getElementById('pricing-list').innerHTML = pricingHtml;
+}
+
+async function refresh() {
+  const data = await fetchStats();
+  renderStats(data);
+}
+
+refresh();
+setInterval(refresh, REFRESH_MS);
+</script>
+</body>
+</html>

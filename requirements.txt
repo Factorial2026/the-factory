@@ -1,0 +1,11 @@
+# The Factory v2 - Python dependencies
+# Lightweight: keeps Render free-tier cold-start fast (~3s).
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+httpx==0.28.1
+pydantic==2.12.4
+pydantic-settings==2.10.0
+google-generativeai==0.8.4
+groq==0.15.0
+python-dotenv==1.0.1
+tenacity==9.0.0

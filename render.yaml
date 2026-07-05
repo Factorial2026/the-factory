@@ -1,0 +1,62 @@
+# Render Blueprint for The Factory v2
+# Docs: https://render.com/docs/blueprint-spec
+services:
+  - type: web
+    name: the-factory
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT --workers 1
+    envVars:
+      - key: GEMINI_API_KEYS
+        sync: false
+      - key: GROQ_API_KEYS
+        sync: false
+      - key: CHAIN
+        value: solana
+      - key: WALLET_ADDRESS
+        value: 7Mby3eZUCxuRkYd3gL89HyVciYaGqKLKQ26jDsLXzi6Q
+      - key: PRICE_METEO
+        value: "0.01"
+      - key: PRICE_FX
+        value: "0.02"
+      - key: PRICE_TRANSIT
+        value: "0.02"
+      - key: PRICE_NEWS
+        value: "0.02"
+      - key: PRICE_STOCKS
+        value: "0.05"
+      - key: PRICE_GITHUB_STATS
+        value: "0.02"
+      - key: BULK_PACK_SIZE
+        value: "10"
+      - key: BULK_PACK_PRICE_USD
+        value: "0.08"
+      - key: BULK_TOKEN_TTL_SECONDS
+        value: "86400"
+      - key: SUBSCRIPTION_PRICE_USD
+        value: "50"
+      - key: SUBSCRIPTION_QUOTA_CALLS
+        value: "10000"
+      - key: SUBSCRIPTION_TOKEN_TTL_SECONDS
+        value: "2592000"
+      - key: MONTHLY_CAP_USD
+        value: "120"
+      - key: SOLANA_RPC_URLS
+        value: https://api.mainnet-beta.solana.com,https://solana-rpc.publicnode.com,https://rpc.ankr.com/solana
+      - key: USDC_MINT
+        value: EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v
+      - key: UPSTASH_REDIS_REST_URL
+        sync: false
+      - key: UPSTASH_REDIS_REST_TOKEN
+        sync: false
+      - key: CACHE_TTL_SECONDS
+        value: "3600"
+      - key: LOG_LEVEL
+        value: INFO
+      - key: REQUEST_TIMEOUT_SECONDS
+        value: "20"
+      - key: PAYMENT_WINDOW_SECONDS
+        value: "300"
+    healthCheckPath: /health
+    autoDeploy: true
