@@ -103,7 +103,7 @@ async def stats():
 async def dashboard():
     """Serve the dashboard HTML page (read from file)."""
     import pathlib
-    dashboard_path = pathlib.Path(__file__).parent.parent / "static" / "dashboard.html"
+    dashboard_path = pathlib.Path(__file__).parent / "static" / "dashboard.html"
     if not dashboard_path.exists():
         return HTMLResponse(
             "<h1>Dashboard not found</h1><p>Place dashboard.html in app/static/</p>",
